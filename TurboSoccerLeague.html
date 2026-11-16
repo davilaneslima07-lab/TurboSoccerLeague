@@ -6483,14 +6483,24 @@
       else pb.classList.add('hide');
       $('shint').textContent = shopTab === 1 ? 'Aqui você vê só a explosão (sem o carro), repetindo em loop. Toque numa explosão para ver — mesmo as que ainda não comprou.' : 'Toque num item para ver no carro. Os que você ainda não tem ficam só em pré-visualização: compre apenas se gostar.'
     }
+    // loja: fundo fixo (Grama de dia) em vez do último mapa jogado, e gol alto (igual aos modos do jogo) na aba de explosões
+    const SHB = {a: null, on: false, open: false};
+    function shopBg(on) {
+      try {
+        if (on) {if (SHB.a === null) {SHB.a = arena; if (LZ.grass) {try {LZ.grass()} catch (e) { } delete LZ.grass} arena = 'grass'; applyTheme('day')} }
+        else if (SHB.a !== null) {arena = SHB.a; SHB.a = null; applyTheme(tod || 'day')}
+      } catch (e) { }
+    }
+    function shopFit(on) {if (!SHB.open) {SHB.open = true; SHB.on = GB > 0} arenaFit(on)}
+    function shopFitEnd() {if (SHB.open) {SHB.open = false; arenaFit(SHB.on)} }
     function openShop() {
-      shopOpen = true; shopTab = 0; clearPv(); document.body.classList.remove('expview');
-      Object.assign(P, {dead: 0, inv: 0, y: 0, vx: 0, vy: 0, vz: 0, p: 0, fa: 0, ftg: 0, fimt: 0, fl: null, sv: 0, yv: 0, vr: 0, vp: 0, F: [Math.sin(P.h), 0, Math.cos(P.h)], U: [0, 1, 0]}); B.dead = 0; B.inv = 0;
+      shopOpen = true; shopBg(true); shopFit(false); shopTab = 0; clearPv(); document.body.classList.remove('expview');
+      Object.assign(P, {dead: 0, inv: 0, x: 0, z: 0, y: 0, vx: 0, vy: 0, vz: 0, p: 0, fa: 0, ftg: 0, fimt: 0, fl: null, sv: 0, yv: 0, vr: 0, vp: 0, F: [Math.sin(P.h), 0, Math.cos(P.h)], U: [0, 1, 0]}); B.dead = 0; B.inv = 0;
       $('ov').classList.add('hide'); $('shop').classList.remove('hide'); document.body.classList.add('shopping'); shNote('', true); updCoins(); applyLook(); renderShop()
     }
-    function closeShop() {shopOpen = false; P.boosting = false; fxStop(); clearPv(); applyLook(); $('shop').classList.add('hide'); $('ov').classList.remove('hide'); document.body.classList.remove('shopping')}
+    function closeShop() {shopOpen = false; shopFitEnd(); shopBg(false); P.boosting = false; fxStop(); clearPv(); applyLook(); $('shop').classList.add('hide'); $('ov').classList.remove('hide'); document.body.classList.remove('shopping')}
     $('shopbtn').onclick = e => {openShop(); e.target.blur()}; $('shx').onclick = closeShop;
-    document.querySelectorAll('.tab').forEach(t => t.onclick = () => {shopTab = +t.dataset.t; clearPv(); fxWipe(); applyLook(); if (shopTab === 1) {EXV.id = SAVE.eq.exp; EXV.t = 0; EXV.placed = false} shNote('', true); renderShop()});
+    document.querySelectorAll('.tab').forEach(t => t.onclick = () => {shopTab = +t.dataset.t; shopFit(shopTab === 1); clearPv(); fxWipe(); applyLook(); if (shopTab === 1) {EXV.id = SAVE.eq.exp; EXV.t = 0; EXV.placed = false} shNote('', true); renderShop()});
     applyLook(); updCoins();
     // ---------- Som ----------
     let AC = null;
@@ -9310,11 +9320,21 @@
     document.addEventListener('pointerdown', e => {if (!shopOpen || SV.d || e.target.closest('#shop,button')) return; SV.d = true; SV.id = e.pointerId; SV.x = e.clientX; SV.y = e.clientY; SV.i = 0; e.preventDefault()});
     document.addEventListener('pointermove', e => {
       if (!SV.d || e.pointerId !== SV.id) return;
-      if (expView()) {EO.a -= (e.clientX - SV.x) * .012; EO.p = clamp(EO.p + (e.clientY - SV.y) * .008, -.2, 1.1); SV.x = e.clientX; SV.y = e.clientY; SV.i = 0; return}
+      if (expView()) {EO.a -= (e.clientX - SV.x) * .007; EO.p = clamp(EO.p + (e.clientY - SV.y) * .0045, -.2, 1.1); SV.x = e.clientX; SV.y = e.clientY; SV.i = 0; return}
       SV.a -= (e.clientX - SV.x) * .012; SV.p = clamp((SV.p === null ? .3 : SV.p) + (e.clientY - SV.y) * .008, .03, 1.2); SV.x = e.clientX; SV.y = e.clientY; SV.i = 0
     });
     const svUp = e => {if (e.pointerId === SV.id) {SV.d = false; SV.id = null; SV.i = 0} };
     document.addEventListener('pointerup', svUp); document.addEventListener('pointercancel', svUp);
+    // celular: deslizar o dedo na tela gira a câmera da loja de explosões (reforço por toque, caso o navegador não entregue o arraste por pointer)
+    const TV = {d: false, id: null, x: 0, y: 0};
+    document.addEventListener('touchstart', e => {if (!shopOpen || !expView() || SV.d || TV.d || e.target.closest('#shop,button')) return; const t = e.changedTouches[0]; TV.d = true; TV.id = t.identifier; TV.x = t.clientX; TV.y = t.clientY}, {passive: true});
+    document.addEventListener('touchmove', e => {
+      if (!TV.d) return; if (!expView()) {TV.d = false; return}
+      for (const t of e.changedTouches) if (t.identifier === TV.id) {EO.a -= (t.clientX - TV.x) * .007; EO.p = clamp(EO.p + (t.clientY - TV.y) * .0045, -.2, 1.1); TV.x = t.clientX; TV.y = t.clientY}
+      if (e.cancelable) e.preventDefault()
+    }, {passive: false});
+    const tvUp = e => {for (const t of e.changedTouches) if (t.identifier === TV.id) TV.d = false};
+    document.addEventListener('touchend', tvUp); document.addEventListener('touchcancel', tvUp);
     function camUpd(dt) {
       let tx, ty, tz, lx, ly, lz;
       if (!shopOpen) {SV.a = SV.p = null; SV.d = false; SV.id = null; EO.a = EO.p = 0}
@@ -9394,6 +9414,7 @@
         else if (sp > .1) {ax.set(ball.vz, 0, -ball.vx).normalize(); ball.mesh.rotateOnWorldAxis(ax, sp * dt / R)}
       }
       ballTrail(dt);
+      if (shopOpen && !expView()) B.mesh.visible = ball.mesh.visible = false;
       if (expView()) {P.mesh.visible = B.mesh.visible = ball.mesh.visible = false; EXV.t -= dt; if (EXV.t <= 0) {EXV.t = NXDUR[EXV.id] ? NXDUR[EXV.id] + .4 : EXV.id === 'portal' ? 4.4 : EXV.id === 'nuke' ? 4.5 : EXV.id === 'meteors' || EXV.id === 'blackhole' ? 3.7 : EXV.id === 'mastersword' || EXV.id === 'cordyceps' ? 4.1 : EXV.id === 'amaterasu' || EXV.id === 'trex' || EXV.id === 'susanoo' || EXV.id === 'diamonds' ? 3.8 : 3.3; boom(0, 7, -HZ - 1, true, EXV.id)} }
       sfxUpdate(); updParts(dt); updFx(dt); animCrowd(ctime, dt); animSc(dt); $('fl').style.opacity = flashA; $('tc').classList.toggle('hide', st !== 'play'); $('hud').style.display = st === 'menu' ? 'none' : ''; document.body.classList.toggle('inmenu', st === 'menu'); $('quickchat').style.display = st === 'menu' ? 'none' : ''; {const ch = st === 'menu' ? $('mute').offsetHeight : 0; if (ch !== _cH) {_cH = ch; $('coins').style.height = ch ? ch + 'px' : ''} } glights[gpi].intensity = (tod === 'night' ? 1.5 : .5) + gp * 10;
       ff = Math.max(0, ff - dt * 2.5); ffm.opacity = .14 + .5 * ff;
@@ -9940,7 +9961,7 @@
           const sh = shopOpen && !expView(), pl = !!(T.act && T.act.hockey);
           ssEl.style.opacity = st === 'play' ? Math.max(0, T.ss * .5) : 0;
           ghEl.classList.toggle('hide', !(sh || (shopOpen && expView()))); ped.visible = sh; if (sh) {ped.position.set(P.x, 0, P.z); ped.children[1].material.color.setHSL((ctime * .1) % 1, .9, .6)}
-          if (pl && st !== 'menu') {puck.visible = true; if (ball.mesh.visible) {ball.mesh.visible = false; puck.visible = true} else puck.visible = false; puck.position.set(ball.x, ball.y - R * .62, ball.z); puck.rotation.y = ctime * 3} else puck.visible = false;
+          if (pl && st !== 'menu' && !shopOpen) {puck.visible = true; if (ball.mesh.visible) {ball.mesh.visible = false; puck.visible = true} else puck.visible = false; puck.position.set(ball.x, ball.y - R * .62, ball.z); puck.rotation.y = ctime * 3} else puck.visible = false;
           const w = EQ('whl'); if (apW !== w) {apW = w; buildRims(w)}
           rimFx(w, dt, sh);
           if (hogL) {const n = tod === 'night' && arena === 'hogwarts'; hogL.children.forEach(o => {if (!o.isLight) o.visible = n}); hogLights.forEach(l => l.intensity = n ? 1.15 : 0)}
