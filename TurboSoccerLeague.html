@@ -842,6 +842,7 @@
 
     #shh {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 10px
@@ -859,8 +860,8 @@
     }
 
     #shx {
-      font-size: 16px;
-      padding: 7px 14px;
+      font-size: 20px;
+      padding: 9px 18px;
       background: #ffffff22;
       color: #fff
     }
@@ -985,8 +986,8 @@
 
     .tab {
       flex: 1;
-      font-size: 15px;
-      padding: 9px 6px;
+      font-size: 19px;
+      padding: 14px 6px;
       background: #ffffff1f;
       color: #fff;
       border: 2px solid #ffffff33
@@ -1041,6 +1042,13 @@
       white-space: nowrap
     }
 
+    .si .by {
+      width: 100%;
+      font-size: 13px;
+      padding: 7px 4px;
+      white-space: nowrap
+    }
+
     .si.pvd {
       border-color: #ffd24d;
       box-shadow: 0 0 14px #ffd24d88
@@ -1049,7 +1057,7 @@
     .shint {
       font-size: 12px;
       opacity: .85;
-      margin: 6px 0 0;
+      margin: 6px 0 14px;
       line-height: 1.35
     }
 
@@ -1344,6 +1352,11 @@
 
     body.inmenu #ov {
       background: #040b20
+    }
+
+    body.inmenu #ov h1 {
+      position: relative;
+      top: -5vh
     }
 
     body.inmenu #ov::before {
@@ -1661,18 +1674,18 @@
       }
 
       #introFs {
-        width: auto;
-        height: auto;
-        padding: 10px 20px;
-        font-size: 15px;
-        letter-spacing: 2px;
+        width: 54px;
+        height: 54px;
+        padding: 0;
+        font-size: 26px;
+        letter-spacing: 0;
         top: 18px;
         right: 18px;
         transition: background .15s, transform .15s
       }
 
       #introFs .lb {
-        display: inline
+        display: none
       }
 
       #introFs:hover {
@@ -1729,12 +1742,11 @@
   </div>
   <div id="shop" class="hide">
     <div id="shh">
-      <h2>🛍️ LOJA</h2><span id="shc">🪙 0</span><button id="shx">✕ Voltar</button>
+      <h2>🛍️ LOJA</h2><button id="shx">✕ Voltar</button>
     </div>
+    <div id="shm"></div>
     <div id="tabs"><button class="tab sel" data-t="0">🚗 CARRO</button><button class="tab" data-t="1">💥
         EXPLOSÕES</button></div>
-    <div id="shm"></div>
-    <div id="pvb" class="hide"><span id="pvn"></span><button id="pvbtn">Comprar</button></div>
     <p class="shint" id="shint"></p>
     <div id="shi"></div>
   </div>
@@ -6448,7 +6460,7 @@
       const hat = m.slot.children[0]; if (hat && hat.userData.spin) hat.userData.spin.rotation.y = ctime * 20;
       if (LOOKB.dec && LOOKB.dec !== 'none') {const q = Math.floor(ctime * DFPS); if (q !== dLast2) {dLast2 = q; drawDecalB(LOOKB.dec, ctime); dtex2.needsUpdate = true} }
     }
-    function updCoins() {$('coins').textContent = '🪙 ' + SAVE.coins; $('shopbtn').textContent = '🛍️ LOJA · 🪙 ' + SAVE.coins; $('shc').textContent = '🪙 ' + SAVE.coins}
+    function updCoins() {$('coins').textContent = '🪙 ' + SAVE.coins; $('shopbtn').textContent = '🛍️ LOJA · 🪙 ' + SAVE.coins}
     function addCoins(n) {
       SAVE.coins += n; persist(); updCoins();
       const e = $('cgain'); e.textContent = '+' + n + ' 🪙'; e.classList.remove('show'); void e.offsetWidth; e.classList.add('show');
@@ -6464,14 +6476,13 @@
       else {clearPv(); PV[sec.k] = it.id; PREVIEW = {sec, it}; if (sec.k === 'exp') {fxWipe(); EXV.id = it.id; EXV.t = 0} snd(560, .07, 'triangle', .045); shNote('👁 Visualizando ' + it.n + ' — você ainda não tem este item', true)}
       applyLook(); renderShop()
     }
-    function buyPv() {
-      if (!PREVIEW) return; const {sec, it} = PREVIEW;
+    function buyIt(sec, it) {
+      if (SAVE.own[sec.k].includes(it.id)) return;
       if (SAVE.coins < it.p) {shNote('Faltam ' + (it.p - SAVE.coins) + ' 🪙 — faça gols para ganhar moedas!', false); snd(180, .15, 'sawtooth', .05); return }
       SAVE.coins -= it.p; SAVE.own[sec.k].push(it.id); equipIt(sec, it); persist();
       snd(880, .1, 'triangle', .06); setTimeout(() => snd(1320, .15, 'triangle', .06), 90); shNote('✅ ' + it.n + ' comprado e equipado!', true);
       applyLook(); updCoins(); renderShop()
     }
-    $('pvbtn').onclick = buyPv;
     function renderShop() {
       document.querySelectorAll('.tab').forEach(t => t.classList.toggle('sel', +t.dataset.t === shopTab));
       const box = $('shi'); box.innerHTML = '';
@@ -6486,13 +6497,11 @@
           else if (sec.k === 'bst') {const k = SKIN[it.id]; pv = '<span class="pv" style="background:' + (k.rb || k.st || k.tt || k.mk ? 'linear-gradient(135deg,#f33,#fc3,#3f6,#39f,#c3f)' : 'linear-gradient(135deg,' + hx(k.c[0]) + ',' + hx(k.c[1]) + ')') + '">' + it.i + '</span>'}
           else pv = '<span class="pv">' + it.i + '</span>';
           b.innerHTML = pv + '<span>' + it.n + '</span><span class="pr">' + (eq ? '✔ EQUIPADO' : own ? 'EQUIPAR' : isPv ? '👁 VENDO' : '👁 VER · 🪙 ' + it.p) + '</span>';
+          if (!own) {const by = document.createElement('button'); by.className = 'by'; by.textContent = SAVE.coins >= it.p ? 'Comprar' : 'Faltam ' + (it.p - SAVE.coins) + ' 🪙'; by.onclick = ev => {ev.stopPropagation(); buyIt(sec, it)}; b.appendChild(by)}
           b.onclick = () => pick(sec, it); gr.appendChild(b)
         });
         s.appendChild(gr); box.appendChild(s)
       });
-      const pb = $('pvb');
-      if (PREVIEW) {pb.classList.remove('hide'); $('pvn').textContent = '👁 ' + PREVIEW.it.n + ' — 🪙 ' + PREVIEW.it.p; $('pvbtn').textContent = SAVE.coins >= PREVIEW.it.p ? 'Comprar e equipar' : 'Faltam ' + (PREVIEW.it.p - SAVE.coins) + ' 🪙'}
-      else pb.classList.add('hide');
       $('shint').textContent = shopTab === 1 ? 'Aqui você vê só a explosão (sem o carro), repetindo em loop. Toque numa explosão para ver — mesmo as que ainda não comprou.' : 'Toque num item para ver no carro. Os que você ainda não tem ficam só em pré-visualização: compre apenas se gostar.'
     }
     // loja: fundo fixo (Grama de dia) em vez do último mapa jogado, e gol alto (igual aos modos do jogo) na aba de explosões
@@ -9085,7 +9094,7 @@
     $('go').onclick = () => {if (st === 'menu' || $('go').textContent === 'JOGAR') openSel('play'); else goMode(mode, mode === '2p' && tr1, bot1)}; $('j1v1b').onclick = () => goMode('2p', true, true); $('goT').onclick = () => openSel('train'); $('tr1v1').onclick = () => goMode('2p', true); $('go2').onclick = () => openSel('2p');
     /* ---------- tela de seleção de mapas (abre ao clicar em JOGAR, TREINO ou 2 PLAYERS) ---------- */
     const msel = document.createElement('div'); msel.id = 'msel'; msel.className = 'hide';
-    {const cs = document.createElement('style'); cs.textContent = '#msel{position:fixed;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:20px;overflow:auto;text-align:center;color:#fff;background:radial-gradient(ellipse at 50% 40%,#0d2a5aee,#030a1af2 80%);touch-action:pan-y}#msel.hide{display:none}#mst{margin:0;font-size:34px;letter-spacing:2px}#msd{margin:0;opacity:.85;font-size:15px}#msb{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:6px}#msGo{background:linear-gradient(#3f8bff,#1c4fc0);color:#fff;border:2px solid #9fd0ff88;box-shadow:0 6px 22px -6px #2f7bff}#msBack{position:fixed;top:12px;right:calc(env(safe-area-inset-right,0px) + 12px);z-index:2;font-size:16px;padding:8px 18px;background:#1c2b4d;color:#fff}#msel #tod{margin-top:2px}@media(max-width:800px),(max-height:520px){#mst{font-size:24px}#msd{font-size:12px}#msb button{font-size:18px;padding:10px 26px}}'; document.head.appendChild(cs)}
+    {const cs = document.createElement('style'); cs.textContent = '#msel{position:fixed;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:20px;overflow:auto;text-align:center;color:#fff;background:radial-gradient(ellipse at 50% 40%,#0d2a5aee,#030a1af2 80%);touch-action:pan-y}#msel.hide{display:none}#mst{margin:0;font-size:34px;letter-spacing:2px}#msd{margin:0;opacity:.85;font-size:15px}#msb{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:6px}#msGo{background:linear-gradient(#3f8bff,#1c4fc0);color:#fff;border:2px solid #9fd0ff88;box-shadow:0 6px 22px -6px #2f7bff}#msBack{position:fixed;top:12px;right:calc(env(safe-area-inset-right,0px) + 12px);z-index:2;font-size:26px;padding:16px 34px;background:#1c2b4d;color:#fff}#msel #tod{margin-top:2px}@media(max-width:800px),(max-height:520px){#mst{font-size:24px}#msd{font-size:12px}#msb button{font-size:18px;padding:10px 26px}}'; document.head.appendChild(cs)}
     msel.innerHTML = '<h2 id="mst"></h2><p id="msd">Escolha a arena e se a partida vai ser de DIA ou de NOITE</p>';
     msel.append($('arn'), $('tod'));
     {const b = document.createElement('div'); b.id = 'msb'; b.innerHTML = '<button id="msGo"></button>'; msel.append(b); const bk = document.createElement('button'); bk.id = 'msBack'; bk.textContent = '⬅ VOLTAR'; msel.append(bk)}
